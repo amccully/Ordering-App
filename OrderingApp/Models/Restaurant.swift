@@ -200,29 +200,22 @@ class Restaurant: Identifiable, Comparable, Decodable {
         lhs.id == rhs.id
     }
     
-    /*
-     
-     */
     static func < (lhs: Restaurant, rhs: Restaurant) -> Bool {
-
-        var leftDist = lhs.distanceAway
-        var rightDist = rhs.distanceAway
-
-        if (leftDist <= 0.1 && rightDist <= 0.1) {
-            return lhs.waitTime < rhs.waitTime
+        if !lhs.isOpen {
+            return false
         }
-        else if (leftDist <= 0.1 || rightDist <= 0.1) {
-            return (leftDist < rightDist)
+        if !rhs.isOpen {
+            return true
         }
         
-        leftDist *= 4
-        rightDist *= 4
+        // Convert distance to walking time (minutes)
+        let lhsWalkTime = lhs.distanceAway * 15
+        let rhsWalkTime = rhs.distanceAway * 15
 
-        leftDist = floor(leftDist)
-        rightDist = floor(rightDist)
+        let lhsTotal = lhsWalkTime + Double(lhs.waitTime)
+        let rhsTotal = rhsWalkTime + Double(rhs.waitTime)
 
-        return leftDist != rightDist ? leftDist < rightDist : lhs.waitTime < rhs.waitTime
-
+        return lhsTotal < rhsTotal
     }
     
     /*

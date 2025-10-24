@@ -25,16 +25,16 @@ class UserInfo: ObservableObject {
     
     // Here we define the region on the map which represent the user. As of now, it is hardcoded to a starting point
     // we use @Published to announce when changes are made to this region, and update views that use this info accordingly
-    @Published var region: MKCoordinateRegion
-    
-    init() {
-        self.region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(
-            latitude: 32.879765,
-            longitude: -117.236202),
-        span: MKCoordinateSpan(
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01)
-        )
-    }
+//    @Published var region: MKCoordinateRegion
+//    
+//    init() {
+//        self.region = MKCoordinateRegion(
+//        center: CLLocationCoordinate2D(
+//            latitude: 32.879765,
+//            longitude: -117.236202),
+//        span: MKCoordinateSpan(
+//            latitudeDelta: 0.01,
+//            longitudeDelta: 0.01)
+//        )
+//    }
 }

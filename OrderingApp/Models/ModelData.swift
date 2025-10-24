@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MapKit
 
 class ModelData: ObservableObject {
     // @Published is used so that changes to the data are updated in our views in real time

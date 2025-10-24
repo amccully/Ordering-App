@@ -8,60 +8,45 @@
 // -117.235209
 
 import MapKit
+import CoreLocation
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let locationManager = CLLocationManager()
+    @Published var userLocation: CLLocation?
+    @Published var authorizationStatus: CLAuthorizationStatus?
     
-    var locationManager: CLLocationManager?
-    var authorized: Bool = false
-    
-    // Added shared coords
-    var coordinates = UserInfo.sharedCoords
-    
-    // use model.locationManager var instead?
-    func checkIfLocationServicesIsEnabled() {
-        // wtf lol
-        if CLLocationManager.locationServicesEnabled() {
-            locationManager = CLLocationManager()
-            locationManager?.desiredAccuracy = kCLLocationAccuracyBest
-            locationManager!.delegate = self
-        }
-        else {
-            print("Alert in locationServicesIsEnabled")
-        }
-    }
-    
-    var location: CLLocationCoordinate2D? {
-        checkLocationAuthorization()
-        if authorized {
-            return locationManager?.location?.coordinate
-        }
-        return nil
-    }
-    
-    private func checkLocationAuthorization() {
-        authorized = false
-        guard let locationManager = locationManager else { return }
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
         
-        switch locationManager.authorizationStatus {
-            
+        // Request permission
+        locationManager.requestWhenInUseAuthorization()
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
+        
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.startUpdatingLocation()
+        case .denied, .restricted:
+            print("Location access denied/restricted")
         case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .restricted:
-            print("Your location is restricted.")
-        case .denied:
-            print("You have denied this app from location permissions.")
-        case .authorizedAlways, .authorizedWhenInUse:
-            authorized = true
-            // move later?
-            coordinates.region = MKCoordinateRegion(center: locationManager.location!.coordinate,
-                                           span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-
+            // Still waiting for user's decision
+            break
         @unknown default:
             break
         }
     }
     
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        checkLocationAuthorization()
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        userLocation = locations.last
     }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Failed to get user location: \(error.localizedDescription)")
+    }
+    
 }
+

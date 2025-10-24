@@ -24,20 +24,42 @@ struct MapView: View {
     // used for keeping track of which map annotation item to transition to
     @State var counter: Int = -1
     
+    // resets counter (current restaurant on map) when search input changes
+    var bindingSearch: Binding<String> {
+        Binding(
+            get: { search },
+            set: {
+                search = $0
+                counter = -1
+            }
+        )
+    }
+    
+    var filteredRestaurants: [Restaurant] {
+        let all = model.restaurants.values.sorted()
+        if search.isEmpty {
+            return all
+        } else {
+            return all.filter { $0.name.lowercased().contains(search.lowercased()) }
+        }
+    }
+    
+    // represents the current region shown on the map screen, this will start at UCSD
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(
+            latitude: 32.879765,
+            longitude: -117.236202),
+        span: MKCoordinateSpan(
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01)
+    )
+    
     var body: some View {
         // create navigation stack here?
         ZStack {
-            let bindingSearch = Binding<String>(get: {
-                self.search
-            }, set: {
-                self.search = $0
-                self.counter = -1
-            })
-            
-            let filtered = search != "" ? model.restaurants.values.sorted().filter { restaurant in restaurant.name.lowercased().contains(search.lowercased())} : model.restaurants.values.sorted()
             // Binding(get: { coordinates.region }, set: { _ in })
             // $coordinates.region
-            Map(coordinateRegion: Binding(get: { coordinates.region }, set: { _ in }), showsUserLocation: true, annotationItems: filtered) { restaurant in
+            Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: filteredRestaurants) { restaurant in
                 MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: restaurant.latitude, longitude: restaurant.longitude)) {
                     
                     PlaceAnnotationView(restaurant: restaurant)
@@ -46,13 +68,20 @@ struct MapView: View {
                 }
             }
             .edgesIgnoringSafeArea(.top)
-            //.accentColor(Color(.systemPurple))
+//            .accentColor(Color(.systemPurple))
             .onAppear {
-                model.locationManager.checkIfLocationServicesIsEnabled()
+                if let coordinate = model.locationManager.userLocation?.coordinate {
+                    updateRegion(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                }
+                else {
+                    print("error")
+                }
                 counter = -1
+                
             }
             
             VStack {
+                // search bar, see about making same as list screen
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
@@ -65,64 +94,53 @@ struct MapView: View {
                 Spacer()
                 
                 HStack {
-                    Button(action: {
+                    NavButton(symbolName: "arrow.backward") {
                         withAnimation {
-                            if counter > 0 {
-                                counter-=1
-                                let restaurantLatitude = filtered[counter].latitude
-                                let restaurantLongitude = filtered[counter].longitude
-                                coordinates.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: restaurantLatitude, longitude: restaurantLongitude), span: MKCoordinateSpan(latitudeDelta: 0.0005, longitudeDelta: 0.0005))
-                            }
+                            guard counter > 0 else { return }
+                            counter -= 1
+                            updateRegion(latitude: filteredRestaurants[counter].latitude, longitude: filteredRestaurants[counter].longitude)
                         }
-                    }, label: {
-                        Image(systemName: "arrow.backward")
-                            .foregroundColor(Color.white)
-                            .font(.title)
-                        Text("Prev")
-                            .foregroundColor(Color.white)
-                            .font(.title)
-                    })
-                    .padding(5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .foregroundColor(Color(UIColor.systemIndigo))
-                            .shadow(color: .black, radius: 2)
-                    )
-                    .padding(.bottom, 30)
-                    .padding(.leading, 20)
-                    Spacer()
-                    HStack {
-                        Button(action: {
-                            withAnimation {
-                                if counter < filtered.count-1 {
-                                    counter+=1
-                                    let restaurantLatitude = filtered[counter].latitude
-                                    let restaurantLongitude = filtered[counter].longitude
-                                    coordinates.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: restaurantLatitude, longitude: restaurantLongitude), span: MKCoordinateSpan(latitudeDelta: 0.0005, longitudeDelta: 0.0005))
-                                }
-                            }
-                        }, label: {
-                            Text("Next")
-                                .font(.title)
-                                .foregroundColor(Color.white)
-                            Image(systemName: "arrow.forward")
-                                .foregroundColor(Color.white)
-                                .font(.title)
-                        })
                     }
-                    .padding(5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .foregroundColor(Color(UIColor.systemIndigo))
-                            .shadow(color: .black, radius: 2)
-                    )
-                    .padding(.bottom, 30)
-                    .padding(.trailing, 20)
+                    Spacer()
+                    NavButton(symbolName: "arrow.forward") {
+                        withAnimation {
+                            guard counter < filteredRestaurants.count - 1 else { return }
+                            counter += 1
+                            updateRegion(latitude: filteredRestaurants[counter].latitude, longitude: filteredRestaurants[counter].longitude)
+                        }
+                    }
                 }
-                //.padding(20)
             }
         }
         
+    }
+
+    func updateRegion(latitude: Double, longitude: Double) {
+        region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+        )
+    }
+    
+    struct NavButton: View {
+        let symbolName: String
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action, label: {
+                Image(systemName: symbolName)
+                    .foregroundColor(Color.white)
+                    .font(.system(size: 40))
+            })
+            .padding(10)
+            .background(
+                Circle()
+                    .foregroundColor(Color(UIColor.systemIndigo))
+                    .shadow(color: .black, radius: 2)
+            )
+            .padding(.bottom, 30)
+            .padding(.horizontal, 20)
+        }
     }
     
     struct PlaceAnnotationView: View {
@@ -152,19 +170,6 @@ struct MapView: View {
             }
             .sheet(isPresented: $showingSheet) {
                 VStack(alignment: .leading) {
-//                    Button(action: {
-//                        showingSheet.toggle()
-//                    }, label: {
-//                        if selectedDetent != .fraction(0.25) {
-//                            Image(systemName: "xmark")
-//                                .foregroundColor(.gray)
-//                                .font(.largeTitle)
-//                                .padding(30)
-//                        }
-//                        else {
-//                            Spacer()
-//                        }
-//                    })
                     NavigationView {
                         RestaurantDetailView(id: restaurant.id)
                             .environmentObject(model)
@@ -176,7 +181,6 @@ struct MapView: View {
             }
         }
     }
-    
 }
 
 struct MapView_Previews: PreviewProvider {

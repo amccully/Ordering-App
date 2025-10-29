@@ -15,6 +15,7 @@ enum HTTPErrors: Error {
 struct ContentView: View {
     
     @StateObject var model: ModelData = ModelData()
+    @StateObject var locationManager = LocationManager()
     
     // this bool will tell us whether the options pop-up (which shows the possible ways to sort the restaurants) is currently active or not
     @State private var showingOptions = false
@@ -22,59 +23,41 @@ struct ContentView: View {
     @State var search: String = ""
     
     var body: some View {
-        Group {
-            switch model.locationManager.authorizationStatus {
-            case .authorizedWhenInUse, .authorizedAlways:
-                TabView {
-                    NavigationView {
-                        List {
-                            searchSection
-                            restaurantSection
-                        }
-                        .navigationTitle("OrderingApp")
-                        .task {
-                            // for later
-                            await loadData()
-                        }
-                        .refreshable {
-                            // for later
-                            await loadData()
-                        }
+        TabView {
+            NavigationView {
+                List {
+                    if let userLocation = locationManager.userLocation {
+                        searchSection
+                        restaurantSection
                     }
-                    .tabItem {
-                        Label("List", systemImage: "list.bullet")
-                    }
-                    
-                    // allows us to navigate to the map view
-                    MapView()
-                        .environmentObject(model)
-                        .tabItem {
-                            Label("Map", systemImage: "map")
-                        }
-                    
-                    // allows us to navigate to the order info view, where our current order info is displayed
-                    OrderInfoView()
-                        .environmentObject(model)
-                        .tabItem {
-                            Label("Order", systemImage: "doc.text")
-                        }
                 }
-            case .denied, .restricted:
-                Text("Please enable location access in Settings to use this app.")
-                .multilineTextAlignment(.center)
-                .padding()
-            case .notDetermined:
-                Text("Requesting Location Permissions...")
-            default:
-                Text("Unknown location status.")
-            }
-        }
-        .onChange(of: model.locationManager.authorizationStatus) { newStatus in
-            if newStatus == .authorizedWhenInUse || newStatus == .authorizedAlways {
-                Task {
+                .navigationTitle("OrderingApp")
+                .task {
+                    await loadData()
+                }
+                .refreshable {
                     await loadData()
                 }
             }
+            .tabItem {
+                Label("List", systemImage: "list.bullet")
+            }
+            
+            // allows us to navigate to the map view
+            MapView()
+                .environmentObject(model)
+                .environmentObject(locationManager)
+                .tabItem {
+                    Label("Map", systemImage: "map")
+                }
+            
+            // allows us to navigate to the order info view, where our current order info is displayed
+            OrderInfoView()
+                .environmentObject(model)
+                .environmentObject(locationManager)
+                .tabItem {
+                    Label("Order", systemImage: "doc.text")
+                }
         }
     }
     
@@ -125,62 +108,15 @@ struct ContentView: View {
      */
     private var restaurantSection: some View {
         Section {
-            let filtered = filterRestaurants()
+            let filtered = model.filterRestaurants(search: search, userLocation: locationManager.userLocation!)
             ForEach(filtered) { restaurant in
-                NavigationLink(destination: RestaurantDetailView(id: restaurant.id).environmentObject(model)) {
+                NavigationLink(destination: RestaurantDetailView(id: restaurant.id)
+                    .environmentObject(model)
+                    .environmentObject(locationManager)) {
                     restaurantRow(for: restaurant)
                 }
             }
         }
-    }
-    
-    /*
-     Function: returns an array of restaurants which matches the search field text and is sorted by the selected search type
-     sorted() comparison definition can be seen in Restaurant class
-     */
-    private func filterRestaurants() -> [Restaurant] {
-        
-        let filteredBySearch: [Restaurant]
-        
-        // includes only restaurants with names contained in the search field
-        if search.isEmpty {
-            filteredBySearch = Array(model.restaurants.values)
-        }
-        else {
-            filteredBySearch = model.restaurants.values.filter { restaurant in
-                return restaurant.name.lowercased().contains(search.lowercased())
-            }
-        }
-        
-        // sorts filtered restaurants by the current sort type
-        switch UserInfo.sortType {
-        case UserInfo.sortTypes[0]:
-            // uses default comparison function defined in restaurant class
-            return filteredBySearch.sorted()
-        case UserInfo.sortTypes[1]:
-            return filteredBySearch.sorted { lhs, rhs in
-                if !lhs.isOpen {
-                    return false
-                }
-                if !rhs.isOpen {
-                    return true
-                }
-                return lhs.waitTime < rhs.waitTime
-            }
-        case UserInfo.sortTypes[2]:
-            return filteredBySearch.sorted { lhs, rhs in
-                if !lhs.isOpen {
-                    return false
-                }
-                if !rhs.isOpen {
-                    return true
-                }
-                return lhs.distanceAway < rhs.distanceAway
-            }
-        default:
-            return filteredBySearch
-        }
-
     }
 
     /*
@@ -194,7 +130,7 @@ struct ContentView: View {
             Spacer()
             VStack(alignment: .trailing) {
                 waitTimeView(for: restaurant)
-                Text("\(restaurant.distanceAsString()) mi")
+                Text("\(model.distanceAsString(restaurant: restaurant, location: locationManager.userLocation!)) mi")
             }
         }
     }
@@ -246,8 +182,7 @@ struct ContentView: View {
     }
     //
     
-    func loadData() async {
-
+    func loadRestaurants() async throws {
         // place holder data, can use api call here
         model.restaurants = [
             "001": Restaurant(id: "001", name: "Subway", description: "This is a test for the view. *Insert Name* makes garbage food that tastes absolutely amazing. Hands-down the best fastfood joint you can go to!", openHour: 6, openMinute: 0, closeHour: 2, closeMinute: 00, latitude: 32.881398208652115, longitude: -117.23520934672317, waitTime: 28, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 8, money: 1),
@@ -256,19 +191,18 @@ struct ContentView: View {
             "004": Restaurant(id: "004", name: "Triton Grill", description: "Located in Muir College on campus. We feature made-to-order sushi, an expansive salad and deli bar, grill and cantina specials, as well as, a decadent dessert station.", openHour: 7, openMinute: 0, closeHour: 1, closeMinute: 0, latitude: 32.88076184401626, longitude: -117.2430254489795, waitTime: 8, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 12, money: 2),
             "005": Restaurant(id: "005", name: "Lemongrass", description: "Located in Muir College on campus. We feature made-to-order sushi, an expansive salad and deli bar, grill and cantina specials, as well as, a decadent dessert station.", openHour: 7, openMinute: 0, closeHour: 23, closeMinute: 0, latitude: 32.8819619, longitude: -117.24311, waitTime: 5, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 12, money: 2)
         ]
-        
-        // getting user coordinates as a CLLocation
-        if let location = model.locationManager.userLocation {
-            let userCoords = CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-
-            for restaurant in model.restaurants.values {
-                let meters = userCoords.distance(from: CLLocation(latitude: restaurant.latitude, longitude: restaurant.longitude))
-                // convert meters to miles
-                let miles = meters / 1609.34
-                restaurant.setDistanceAway(_distanceAway: miles)
-            }
+    }
+    
+    func loadData() async {
+        print("Load data was called.")
+        do {
+            try await loadRestaurants()
+        } catch {
+            print("Error while fetching restaurants: \(error)")
+            return
         }
-
+        // once we have restaurant data, we can request for the user's location
+        locationManager.requestOneTimeLocation()
     }
 }
 

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RestaurantDetailView: View {
     @EnvironmentObject var model: ModelData
+    @EnvironmentObject var locationManager: LocationManager
     
     let id: String
     
@@ -53,7 +54,7 @@ struct RestaurantDetailView: View {
                         .background(RoundedRectangle(cornerRadius: 8).fill(.thinMaterial))
                         .foregroundColor(restaurant.waitTime <= 10 ? .green : restaurant.waitTime <= 30 ? .orange : .red)
                     }
-                    Text("\(restaurant.distanceAsString()) mi")
+                    Text("\(model.distanceAsString(restaurant: restaurant, location: locationManager.userLocation!)) mi")
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(.thinMaterial))
                     if !restaurant.costAsString().isEmpty {

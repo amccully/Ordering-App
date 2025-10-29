@@ -32,7 +32,7 @@ struct RestStruct: Decodable {
     open and close hour will be in 24 hour format
  */
 
-class Restaurant: Identifiable, Comparable, Decodable {
+class Restaurant: Identifiable, Decodable {
     var id: String
     var name: String
     var description: String
@@ -42,7 +42,6 @@ class Restaurant: Identifiable, Comparable, Decodable {
     var closeMinute: Int
     var latitude: Double
     var longitude: Double
-    var distanceAway: Double
     var menuItems: [String]
     var numInLine: Int?
     var money: Int
@@ -114,7 +113,6 @@ class Restaurant: Identifiable, Comparable, Decodable {
         self.latitude = latitude
         self.longitude = longitude
         self.waitTime = waitTime
-        self.distanceAway = 0.0
         self.menuItems = menuItems
         self.numInLine = numInLine
         self.money = money
@@ -131,7 +129,6 @@ class Restaurant: Identifiable, Comparable, Decodable {
         case latitude
         case longitude
         case waitTime
-        case distanceAway
         case menuItems
         case money
     }
@@ -191,46 +188,11 @@ class Restaurant: Identifiable, Comparable, Decodable {
 //
 //        return try JSONDecoder().decode(Restaurant.self, from: data)
 //    }
-
-    /*
-        Comparison operator to see if two restraunt objects are equal
-        Restaurants are considered the same if they have the same ID
-     */
-    static func == (lhs: Restaurant, rhs: Restaurant) -> Bool {
-        lhs.id == rhs.id
-    }
     
-    static func < (lhs: Restaurant, rhs: Restaurant) -> Bool {
-        if !lhs.isOpen {
-            return false
-        }
-        if !rhs.isOpen {
-            return true
-        }
-        
-        // Convert distance to walking time (minutes)
-        let lhsWalkTime = lhs.distanceAway * 15
-        let rhsWalkTime = rhs.distanceAway * 15
-
-        let lhsTotal = lhsWalkTime + Double(lhs.waitTime)
-        let rhsTotal = rhsWalkTime + Double(rhs.waitTime)
-
-        return lhsTotal < rhsTotal
-    }
-    
-    /*
-        a setter for updating the restaurant's distance from the user's location
-     */
-    func setDistanceAway(_distanceAway: Double) {
-        self.distanceAway = _distanceAway
-    }
-    
-    /*
-        Function returns the distance that the user is from the restaurant as a string formatted to the first decimal place
-        If the user is under 0.1 miles from the restaurant, we simply return <0.1
-     */
-    func distanceAsString() -> String {
-        return (self.distanceAway < 0.1) ? "<0.1" : String(format: "%0.1f", self.distanceAway)
+    func distanceAway(from userLocation: CLLocation) -> Double {
+        let meters = userLocation.distance(from: CLLocation(latitude: self.latitude, longitude: self.longitude))
+        // convert meters to miles and return
+        return meters / 1609.34
     }
     
     /*

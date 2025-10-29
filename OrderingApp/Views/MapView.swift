@@ -13,6 +13,7 @@ import MapKit
 
 struct MapView: View {
     @EnvironmentObject var model: ModelData
+    @EnvironmentObject var locationManager: LocationManager
     
     // Added shared coords
     @ObservedObject var coordinates = UserInfo.sharedCoords
@@ -36,12 +37,7 @@ struct MapView: View {
     }
     
     var filteredRestaurants: [Restaurant] {
-        let all = model.restaurants.values.sorted()
-        if search.isEmpty {
-            return all
-        } else {
-            return all.filter { $0.name.lowercased().contains(search.lowercased()) }
-        }
+        model.filterRestaurants(search: search, userLocation: locationManager.userLocation!)
     }
     
     // represents the current region shown on the map screen, this will start at UCSD
@@ -70,7 +66,7 @@ struct MapView: View {
             .edgesIgnoringSafeArea(.top)
 //            .accentColor(Color(.systemPurple))
             .onAppear {
-                if let coordinate = model.locationManager.userLocation?.coordinate {
+                if let coordinate = locationManager.userLocation?.coordinate {
                     updateRegion(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 }
                 else {

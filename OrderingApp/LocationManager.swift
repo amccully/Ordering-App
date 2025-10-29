@@ -29,7 +29,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
-            locationManager.startUpdatingLocation()
+            // commented out, we will only requestLocation when needed from the view
+//            locationManager.startUpdatingLocation()
+            print("Location access granted")
         case .denied, .restricted:
             print("Location access denied/restricted")
         case .notDetermined:
@@ -38,6 +40,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         @unknown default:
             break
         }
+    }
+    
+    // for requesting one time location update. didUpdateLocation delegate will be called once udpated
+    func requestOneTimeLocation() {
+        locationManager.requestLocation()
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {

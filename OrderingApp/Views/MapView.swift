@@ -37,7 +37,7 @@ struct MapView: View {
     }
     
     var filteredRestaurants: [Restaurant] {
-        model.filterRestaurants(search: search, userLocation: locationManager.userLocation!)
+        model.filterRestaurants(search: search)
     }
     
     // represents the current region shown on the map screen, this will start at UCSD

@@ -189,12 +189,6 @@ class Restaurant: Identifiable, Decodable {
 //        return try JSONDecoder().decode(Restaurant.self, from: data)
 //    }
     
-    func distanceAway(from userLocation: CLLocation) -> Double {
-        let meters = userLocation.distance(from: CLLocation(latitude: self.latitude, longitude: self.longitude))
-        // convert meters to miles and return
-        return meters / 1609.34
-    }
-    
     /*
         This function will look at price indicator for a restaurant and return the corresponding dollar sign visual as a string
         The purpose is to give the user an idea of how pricey the place is

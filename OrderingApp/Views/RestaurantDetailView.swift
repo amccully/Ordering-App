@@ -54,7 +54,7 @@ struct RestaurantDetailView: View {
                         .background(RoundedRectangle(cornerRadius: 8).fill(.thinMaterial))
                         .foregroundColor(restaurant.waitTime <= 10 ? .green : restaurant.waitTime <= 30 ? .orange : .red)
                     }
-                    Text("\(model.distanceAsString(restaurant: restaurant, location: locationManager.userLocation!)) mi")
+                    Text("\(model.distanceAsString(id: restaurant.id))")
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(.thinMaterial))
                     if !restaurant.costAsString().isEmpty {

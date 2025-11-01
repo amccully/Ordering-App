@@ -21,7 +21,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         
         // Request permission
-        locationManager.requestWhenInUseAuthorization()
+        //locationManager.requestWhenInUseAuthorization()
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -39,6 +39,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             break
         @unknown default:
             break
+        }
+    }
+    
+    func requestPermissions() {
+        if authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
         }
     }
     

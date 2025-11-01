@@ -23,41 +23,56 @@ struct ContentView: View {
     @State var search: String = ""
     
     var body: some View {
-        TabView {
-            NavigationView {
-                List {
-                    if let userLocation = locationManager.userLocation {
+        switch locationManager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            TabView {
+                NavigationView {
+                    List {
                         searchSection
                         restaurantSection
                     }
+                    .navigationTitle("OrderingApp")
+                    .task {
+                        await loadData()
+                    }
+                    .refreshable {
+                        await loadData()
+                    }
+                    .onChange(of: locationManager.userLocation) { newLocation in
+                        model.calculateDistances(userLocation: newLocation)
+                    }
                 }
-                .navigationTitle("OrderingApp")
-                .task {
-                    await loadData()
-                }
-                .refreshable {
-                    await loadData()
-                }
-            }
-            .tabItem {
-                Label("List", systemImage: "list.bullet")
-            }
-            
-            // allows us to navigate to the map view
-            MapView()
-                .environmentObject(model)
-                .environmentObject(locationManager)
                 .tabItem {
-                    Label("Map", systemImage: "map")
+                    Label("List", systemImage: "list.bullet")
                 }
-            
-            // allows us to navigate to the order info view, where our current order info is displayed
-            OrderInfoView()
-                .environmentObject(model)
-                .environmentObject(locationManager)
-                .tabItem {
-                    Label("Order", systemImage: "doc.text")
+                
+                // allows us to navigate to the map view
+                MapView()
+                    .environmentObject(model)
+                    .environmentObject(locationManager)
+                    .tabItem {
+                        Label("Map", systemImage: "map")
+                    }
+                
+                // allows us to navigate to the order info view, where our current order info is displayed
+                OrderInfoView()
+                    .environmentObject(model)
+                    .environmentObject(locationManager)
+                    .tabItem {
+                        Label("Order", systemImage: "doc.text")
+                    }
+            }
+        case .notDetermined:
+            Text("Waiting for authorization...")
+                .multilineTextAlignment(.center)
+                .padding()
+                .onAppear {
+                    locationManager.requestPermissions()
                 }
+        default:
+            Text("Location access denied. Please enable location access in your device settings!")
+                .multilineTextAlignment(.center)
+                .padding()
         }
     }
     
@@ -108,7 +123,7 @@ struct ContentView: View {
      */
     private var restaurantSection: some View {
         Section {
-            let filtered = model.filterRestaurants(search: search, userLocation: locationManager.userLocation!)
+            let filtered = model.filterRestaurants(search: search)
             ForEach(filtered) { restaurant in
                 NavigationLink(destination: RestaurantDetailView(id: restaurant.id)
                     .environmentObject(model)
@@ -130,7 +145,7 @@ struct ContentView: View {
             Spacer()
             VStack(alignment: .trailing) {
                 waitTimeView(for: restaurant)
-                Text("\(model.distanceAsString(restaurant: restaurant, location: locationManager.userLocation!)) mi")
+                Text("\(model.distanceAsString(id: restaurant.id))")
             }
         }
     }

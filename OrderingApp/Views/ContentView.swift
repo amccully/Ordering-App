@@ -53,6 +53,12 @@ struct ContentView: View {
                     .tabItem {
                         Label("Map", systemImage: "map")
                     }
+                    .task {
+                        await loadData()
+                    }
+                    .onChange(of: locationManager.userLocation) { newLocation in
+                        model.calculateDistances(userLocation: newLocation)
+                    }
                 
                 // allows us to navigate to the order info view, where our current order info is displayed
                 OrderInfoView()
@@ -126,8 +132,7 @@ struct ContentView: View {
             let filtered = model.filterRestaurants(search: search)
             ForEach(filtered) { restaurant in
                 NavigationLink(destination: RestaurantDetailView(id: restaurant.id)
-                    .environmentObject(model)
-                    .environmentObject(locationManager)) {
+                    .environmentObject(model)) {
                     restaurantRow(for: restaurant)
                 }
             }
@@ -156,7 +161,7 @@ struct ContentView: View {
      */
     private func waitTimeView(for restaurant: Restaurant) -> some View {
         
-        let waitTimeColor = waitTimeColor(for: restaurant)
+        let waitTimeColor = model.waitTimeColor(for: restaurant)
         
         // Group is used here to provide a consistent return type for Swift
         return Group {
@@ -175,35 +180,14 @@ struct ContentView: View {
             }
         }
     }
-
-    /*
-     Function: Decides color to display wait time in
-     If wait time is under 10, it is considered fast, so green
-     If wait time is under 30, it is considered medium, so orange
-     If wait time is 30 or above, it is considered slow, so red
-     */
-    private func waitTimeColor(for restaurant: Restaurant) -> Color {
-        // Define thresholds for wait time speeds (in minutes)
-        let lowThreshold = 10
-        let mediumThreshold = 20
-        
-        if restaurant.waitTime < lowThreshold {
-            return .green
-        } else if restaurant.waitTime < mediumThreshold {
-            return .orange
-        } else {
-            return .red
-        }
-    }
-    //
     
     func loadRestaurants() async throws {
         // place holder data, can use api call here
         model.restaurants = [
-            "001": Restaurant(id: "001", name: "Subway", description: "This is a test for the view. *Insert Name* makes garbage food that tastes absolutely amazing. Hands-down the best fastfood joint you can go to!", openHour: 6, openMinute: 0, closeHour: 2, closeMinute: 00, latitude: 32.881398208652115, longitude: -117.23520934672317, waitTime: 28, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 8, money: 1),
+            "001": Restaurant(id: "001", name: "Subway", description: "This is a test for the view. *Insert Name* makes garbage food that tastes absolutely amazing. Hands-down the best fastfood joint you can go to!", openHour: 6, openMinute: 0, closeHour: 18, closeMinute: 0, latitude: 32.881398208652115, longitude: -117.23520934672317, waitTime: 28, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 8, money: 1),
             "002": Restaurant(id: "002", name: "Panda Express", description: "This is a test for the view. *Insert Name* makes garbage food that tastes absolutely amazing. Hands-down the best fastfood joint you can go to!", openHour: 9, openMinute: 50, closeHour: 22, closeMinute: 30, latitude: 32.884638, longitude: -117.239104, waitTime: 5, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 8, money: 1),
             "003": Restaurant(id: "003", name: "Burger King", description: "This is a test for the view. *Insert name* makes garbage food that tastes absolutely amazing. Hands-down the best fastfood joint you can go to!", openHour: 6, openMinute: 30, closeHour: 1, closeMinute: 0, latitude: 32.8809679784332, longitude: -117.23547474701675, waitTime: 8, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 3, money: 1),
-            "004": Restaurant(id: "004", name: "Triton Grill", description: "Located in Muir College on campus. We feature made-to-order sushi, an expansive salad and deli bar, grill and cantina specials, as well as, a decadent dessert station.", openHour: 7, openMinute: 0, closeHour: 1, closeMinute: 0, latitude: 32.88076184401626, longitude: -117.2430254489795, waitTime: 8, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 12, money: 2),
+            "004": Restaurant(id: "004", name: "Triton Grill", description: "Located in Muir College on campus. We feature made-to-order sushi, an expansive salad and deli bar, grill and cantina specials, as well as, a decadent dessert station.", openHour: 8, openMinute: 0, closeHour: 2, closeMinute: 0, latitude: 32.88076184401626, longitude: -117.2430254489795, waitTime: 14, menuItems: ["Bean Burger Combo", "Chicken Sandwich", "Triton Dog", "Fish & Chips", "Vanilla Ice Cream"], numInLine: 12, money: 2),
             "005": Restaurant(id: "005", name: "Lemongrass", description: "Located in Muir College on campus. We feature made-to-order sushi, an expansive salad and deli bar, grill and cantina specials, as well as, a decadent dessert station.", openHour: 7, openMinute: 0, closeHour: 23, closeMinute: 0, latitude: 32.8819619, longitude: -117.24311, waitTime: 5, menuItems: ["Food 1", "Food 2", "Food 3", "Food 4", "Food 5"], numInLine: 12, money: 2)
         ]
     }

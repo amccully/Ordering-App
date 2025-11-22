@@ -25,6 +25,14 @@ struct MapView: View {
     // used for keeping track of which map annotation item to transition to
     @State var counter: Int = -1
     
+    // used to grey out forward and backward buttons when option isn't available
+    var isBackwardDisabled: Bool {
+        return counter <= 0
+    }
+    var isForwardDisabled: Bool {
+        return counter >= filteredRestaurants.count - 1
+    }
+    
     // resets counter (current restaurant on map) when search input changes
     var bindingSearch: Binding<String> {
         Binding(
@@ -60,7 +68,6 @@ struct MapView: View {
                     
                     PlaceAnnotationView(restaurant: restaurant)
                         .environmentObject(model)
-                    
                 }
             }
             .edgesIgnoringSafeArea(.top)
@@ -69,11 +76,7 @@ struct MapView: View {
                 if let coordinate = locationManager.userLocation?.coordinate {
                     updateRegion(latitude: coordinate.latitude, longitude: coordinate.longitude)
                 }
-                else {
-                    print("error")
-                }
                 counter = -1
-                
             }
             
             VStack {
@@ -92,25 +95,30 @@ struct MapView: View {
                 HStack {
                     NavButton(symbolName: "arrow.backward") {
                         withAnimation {
-                            guard counter > 0 else { return }
+//                            guard counter > 0 else { return }
                             counter -= 1
                             updateRegion(latitude: filteredRestaurants[counter].latitude, longitude: filteredRestaurants[counter].longitude)
                         }
                     }
+                    .disabled(isBackwardDisabled)
+                    .opacity(isBackwardDisabled ? 0.6 : 1.0)
                     Spacer()
                     NavButton(symbolName: "arrow.forward") {
                         withAnimation {
-                            guard counter < filteredRestaurants.count - 1 else { return }
+//                            guard counter < filteredRestaurants.count - 1 else { return }
                             counter += 1
                             updateRegion(latitude: filteredRestaurants[counter].latitude, longitude: filteredRestaurants[counter].longitude)
                         }
                     }
+                    .disabled(isForwardDisabled)
+                    .opacity(isForwardDisabled ? 0.6 : 1.0)
                 }
             }
         }
         
     }
 
+    // takes latitude and longitude values to update the region shown on the map
     func updateRegion(latitude: Double, longitude: Double) {
         region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
@@ -155,11 +163,11 @@ struct MapView: View {
                     .padding(2)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .foregroundColor(.red)
+                            .foregroundColor(restaurant.isOpen ? .red : .gray)
                     )
                 Image(systemName: "mappin.circle.fill")
                     .font(.title)
-                    .foregroundColor(.red)
+                    .foregroundColor(restaurant.isOpen ? .red : .gray)
             }
             .onTapGesture {
                 showingSheet.toggle()

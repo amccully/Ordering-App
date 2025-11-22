@@ -32,7 +32,7 @@ struct OrderView : View {
                     HStack {
                         Text("Menu item:")
                         Spacer()
-                        Text("Add to order:")
+                        Text("Add to order")
                     }
                     ForEach(restaurant.menuItems, id: \.self) { item in
                         HStack {
@@ -50,7 +50,7 @@ struct OrderView : View {
                     }
                 }
                 Section {
-                    Text("Your order: \(userOrderStr)")
+                    Text("Your order:\n\(userOrderStr)")
                     Button {
                        clearOrder()
                     } label: {
@@ -126,9 +126,9 @@ struct OrderView : View {
         // was previously commented out, do not uncomment as of now
         // restName: str, orderTime: int, items: list, numInLine: int, orderId: str
         
-        let date = Date()
-        var hours = Calendar.current.component(.hour, from: date)
-        let mins = Calendar.current.component(.minute, from: date)
+        let currentTime = Date()
+        let hours = Calendar.current.component(.hour, from: currentTime)
+        let mins = Calendar.current.component(.minute, from: currentTime)
         let orderId = UUID().uuidString
 //        orderData.orderId = orderId
 //        orderData.restID = restaurant.id
@@ -167,13 +167,19 @@ struct OrderView : View {
         
         orderData.hasOrder = true
         orderData.currentOrder = "\(restaurant.name): " + userOrderStr
-        var calc = mins + restaurant.waitTime
-        while calc >= 60 {
-            hours+=1
-            calc-=60
+        
+        if let finishTime = Calendar.current.date(byAdding: .minute, value: restaurant.waitTime, to: currentTime) {
+            
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US") // Ensures AM/PM and 12-hour format
+            formatter.dateFormat = "h:mm a"
+            
+            // Set the estimated finish time
+            orderData.estimatedFinishTime = formatter.string(from: finishTime)
+            
+        } else {
+            orderData.estimatedFinishTime = "Error calculating time"
         }
-        // might need proofing? check cases
-        orderData.estimatedFinishTime = "\(hours % 12 == 0 ? 12 : hours % 12):\(String(format: "%02d", calc)) \(hours > 11 ? "PM" : "AM")"
         
         clearOrder()
     }

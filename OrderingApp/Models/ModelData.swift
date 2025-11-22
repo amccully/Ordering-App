@@ -7,6 +7,7 @@
 
 import Foundation
 import MapKit
+import SwiftUICore
 
 class ModelData: ObservableObject {
     // @Published is used so that changes to the data are updated in our views in real time
@@ -82,6 +83,26 @@ class ModelData: ObservableObject {
         }
         return (item < 0.1) ? "<0.1 mi" : String(format: "%0.1f mi", item)
     }
-
+    
+    /*
+     Function: Decides color to display wait time in
+     If wait time is under 10, it is considered fast, so green
+     If wait time is under 20, it is considered medium, so orange
+     If wait time is 20 or above, it is considered slow, so red
+     */
+    func waitTimeColor(for restaurant: Restaurant) -> Color {
+        // Define thresholds for wait time speeds (in minutes)
+        let lowThreshold = 10
+        let mediumThreshold = 20
+        
+        if restaurant.waitTime < lowThreshold {
+            return .green
+        } else if restaurant.waitTime < mediumThreshold {
+            return .orange
+        } else {
+            return .red
+        }
+    }
+    //
 }
 

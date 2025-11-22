@@ -9,7 +9,6 @@ import SwiftUI
 
 struct RestaurantDetailView: View {
     @EnvironmentObject var model: ModelData
-    @EnvironmentObject var locationManager: LocationManager
     
     let id: String
     
@@ -52,7 +51,7 @@ struct RestaurantDetailView: View {
                         }
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(.thinMaterial))
-                        .foregroundColor(restaurant.waitTime <= 10 ? .green : restaurant.waitTime <= 30 ? .orange : .red)
+                        .foregroundColor(model.waitTimeColor(for: restaurant))
                     }
                     Text("\(model.distanceAsString(id: restaurant.id))")
                         .padding(8)
@@ -76,6 +75,9 @@ struct RestaurantDetailView: View {
                 NavigationLink {
                     OrderView(id: restaurant.id).environmentObject(model)
                 } label: {
+                    Image(systemName: "bag")
+                        .foregroundColor(Color.white)
+                        .font(.system(size: 20))
                     Text("Order Form")
                         .foregroundColor(Color.white)
                         .font(.title3)
@@ -84,7 +86,7 @@ struct RestaurantDetailView: View {
                 .padding(5)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        //.foregroundColor(.orange)
+                    //.foregroundColor(.orange)
                         .foregroundColor(Color(UIColor(red: 1.00, green: 0.68, blue: 0.32, alpha: 1.00)))
                         .shadow(color: .black, radius: 1)
                 )
@@ -94,6 +96,9 @@ struct RestaurantDetailView: View {
                         UIApplication.shared.open(mapUrl!, options: [:], completionHandler: nil)
                     }
                 } label: {
+                    Image(systemName: "location")
+                        .foregroundColor(Color.white)
+                        .font(.system(size: 20))
                     Text("Get Directions")
                         .foregroundColor(Color.white)
                         .font(.title3)
@@ -102,7 +107,7 @@ struct RestaurantDetailView: View {
                 .padding(5)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        //.foregroundColor(.blue)
+                    //.foregroundColor(.blue)
                         .foregroundColor(Color(UIColor(red: 0.32, green: 0.69, blue: 1.00, alpha: 1.00)))
                         .shadow(color: .black, radius: 1)
                 )
